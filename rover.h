@@ -95,9 +95,9 @@ class Action
         type = a;
         actions = NULL;
     }
-    Action(std::initializer_list<ActionType> actions)
+    Action(std::initializer_list<ActionType> _actions)
     {
-        actions = new std::vector<Action>(actions);
+        actions = std::vector(_actions);
         type = NULL;
     }
     bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
@@ -145,7 +145,7 @@ class Action
     }
     private:
     ActionType type; // tylko jeśli to pojedynczy typ
-    std::vector<Action> actions; // tylko jeśli to compose
+    std::vector<std::shared_ptr<Action>> actions; // tylko jeśli to compose
 };
 
 class MoveForward : Action {
@@ -162,6 +162,15 @@ class RotateLeft : Action {
 
 class RotateRight : Action {
 
+};
+
+class Compose : public Action {
+private:
+    std::vector<std::shared_ptr<Action>> components;
+
+public:
+    Compose(std::initializer_list<std::shared_ptr<Action>> _components)
+        : components(_components) {}
 };
 
 std::shared_ptr<MoveForward> move_forward()
@@ -184,9 +193,9 @@ std::shared_ptr<RotateRight> rotate_right()
     return std::make_shared<RotateRight>();
 }
 
-Action compose(std::initializer_list<Action> actions)
+std::shared_ptr<Action> compose(std::initializer_list<std::shared_ptr<Action>> actions)
 {
-    return new Action(actions);
+    return std::make_shared<Compose>(actions);
 }
 
 class Sensor
