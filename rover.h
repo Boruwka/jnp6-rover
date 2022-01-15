@@ -1,10 +1,11 @@
+#include <utility>
 #include <vector>
 #include <map>
 #include <array>
 
 using coordinate_t = long long int;
 
-enum class DirectionType
+enum class Direction
 {
     WEST,
     EAST,
@@ -28,12 +29,16 @@ class Position
         x = pos.first;
         y = pos.second;
     }
+    coordinate_t getX() {
+        return x;
+    }
+    coordinate_t getY() {
+        return y;
+    }
     private:
     coordinate_t x;
     coordinate_t y;
 };
-
-
 
 struct NotLanded : public std::exception {
     const char *what() const throw() { return "Rover has not landed yet"; }
@@ -47,18 +52,36 @@ class RoverState
         this->landed = false;
         this->stopped = false;
     }
-    void land(Position pos, Direction dir)
+    void land(std::pair<coordinate_t, coordinate_t> position, Direction direction)
     {
-        this->pos = pos;
-        this->dir = dir;
+        this->position = std::make_shared<Position>(position);
+        this->direction = direction;
         this->landed = true;
         this->stopped = false;
     }
+    [[nodiscard]] bool getLanded() const {
+        return landed;
+    }
+    void setLanded(bool l) {
+        this->landed = l;
+    }
+    void setStopped(bool s) {
+        this->stopped = s;
+    }
+    [[nodiscard]] bool getStopped() const {
+        return stopped;
+    }
+    [[nodiscard]] Direction getDirection() const {
+        return direction;
+    }
+    [[nodiscard]] std::shared_ptr<Position> getPosition() const {
+        return position;
+    }
+    private:
     bool landed;
     bool stopped;
-    private:
-    Position pos;
-    Direction dir;
+    std::shared_ptr<Position> position;
+    Direction direction;
 };
 
 class Rover;
@@ -175,54 +198,55 @@ class Sensor
 class Rover
 {
 public:
-    Rover(std::map<char, Action> commands, std::set<std::unique_ptr<Sensor>> sensors)
+    Rover(std::map<char, std::shared_ptr<Action>> &&commands, std::vector<std::unique_ptr<Sensor>> &&sensors)
     {
-        this.sensors = sensors;
-        this.commands = commands;
-        this.state = new RoverState();
+        this->sensors = sensors;
+        this->commands = commands;
+        this->state = std::make_shared<RoverState>();
     }
-    void execute(std::string command_string)
+    void execute(const std::string &command_string)
     {
-        if (!state.landed)
+        if (!state->getLanded())
         {
-            throw NotLanded;
+            throw NotLanded();
         }
         for (auto c: command_string)
         {
             if(!commands.contains(c))
             {
-                state.stopped = true;
+                state->setStopped(true);
                 return;
             }
-            if (!commands[c].execute(*this))
+            if (!commands[c]->execute(*this))
             {
-                state.stopped = true;
+                state->setStopped(true);
             }
         }
     }
     std::ostream& operator<<(std::ostream& os, const Rover& rover)
     {
         // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
-        if (!rover.state.landed)
+        if (!rover.state->getLanded())
         {
             os << "unknown";
         }
         else
         {
-            os << "(" << rover.state.position.x << ", " << rover.state.position.y << ")";
-            if (rover.state.direction == DirectionType::WEST)
+            os << "(" << rover.state->getPosition()->getX() << ", " << rover.state->getPosition()->getY() << ")";
+            if (rover.state->getDirection() == Direction::WEST)
             {
                 os << " WEST";
             }
-            if (rover.state.direction == DirectionType::WEST)
+            Direction dir = rover.state->getDirection()
+            if (rover.state->getDirection() == Direction::WEST)
             {
                 os << " NORTH";
             }
-            if (rover.state.direction == DirectionType::WEST)
+            if (rover.state.direction == Direction::WEST)
             {
                 os << " EAST";
             }
-            if (rover.state.direction == DirectionType::WEST)
+            if (rover.state.direction == Direction::WEST)
             {
                 os << " SOUTH";
             }
@@ -236,10 +260,9 @@ public:
     }
     void land(std::pair<coordinate_t, coordinate_t> pos, Direction dir)
     {
-        Position position = new Position(pos);
-        state.land(position, dir);
+        state->land(pos, dir);
     }
-    bool is_danger(Position position)
+    bool isDanger(Position position)
     {
         for (auto s: sensors)
         {
@@ -251,30 +274,32 @@ public:
         return false;
     }
 private:
-    RoverState state;
+    std::map<char, std::shared_ptr<Action>> commands;
+    std::vector<std::unique_ptr<Sensor>> sensors;
+    std::shared_ptr<RoverState> state;
     std::ostream& operator<<(std::ostream& os, const Rover& rover)
     {
         // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
-        if (!rover.state.landed)
+        if (!rover.state->landed)
         {
             os << "unknown";
         }
         else
         {
             os << "(" << rover.state.position.x << ", " << rover.state.position.y << ")";
-            if (rover.state.direction == DirectionType::WEST)
+            if (rover.state.direction == Direction::WEST)
             {
                 os << " WEST";
             }
-            if (rover.state.direction == DirectionType::WEST)
+            if (rover.state.direction == Direction::WEST)
             {
                 os << " NORTH";
             }
-            if (rover.state.direction == DirectionType::WEST)
+            if (rover.state.direction == Direction::WEST)
             {
                 os << " EAST";
             }
-            if (rover.state.direction == DirectionType::WEST)
+            if (rover.state.direction == Direction::WEST)
             {
                 os << " SOUTH";
             }
@@ -285,8 +310,6 @@ private:
             os << "\n";
         }
         return os;
-    std::map<char, Action> commands;
-    std::vector<std::unique_ptr<Sensor>> sensors;
 };
 
 class RoverBuilder
