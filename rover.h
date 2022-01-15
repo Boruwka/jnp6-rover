@@ -178,6 +178,7 @@ public:
 };
 
 class MoveForward : public Action {
+public:
     bool execute(Rover& rover) const override
     {
         Position pos = rover.state.get_forward_position();
@@ -190,6 +191,7 @@ class MoveForward : public Action {
 };
 
 class MoveBackward : public Action {
+public:
     bool execute(Rover& rover) const override
     {
         Position pos = rover.state.get_backward_position();
@@ -202,6 +204,7 @@ class MoveBackward : public Action {
 };
 
 class RotateLeft : public Action {
+public:
     bool execute(Rover& rover) const override
     {
         rover.state.rotate_left();
@@ -210,6 +213,7 @@ class RotateLeft : public Action {
 };
 
 class RotateRight : public Action {
+public:
     bool execute(Rover& rover) const override
     {
         rover->state.rotate_right();
@@ -218,7 +222,7 @@ class RotateRight : public Action {
 };
 
 class Compose : public Action {
-
+public:
     Compose(std::initializer_list<std::shared_ptr<Action>> _components) : components(_components) {}
 
     bool execute(Rover& rover) const override
@@ -256,7 +260,7 @@ std::shared_ptr<RotateRight> rotate_right()
     return std::make_shared<RotateRight>();
 }
 
-std::shared_ptr<Action> compose(std::initializer_list<Action> actions)
+std::shared_ptr<Action> compose(std::initializer_list<std::shared_ptr<Action>> actions)
 {
     return std::make_shared<Compose>(actions);
 }
