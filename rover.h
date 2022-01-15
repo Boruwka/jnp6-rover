@@ -89,6 +89,34 @@ class RoverState
     [[nodiscard]] std::shared_ptr<Position> getPosition() const {
         return position;
     }
+    std::shared_ptr<Position> get_forward_position()
+    {
+        switch (direction)
+        {
+            case (Direction::WEST):
+                return std::make_shared<Position>((position->getX - 1), position->getY); 
+            case (Direction::EAST):
+                return std::make_shared<Position>((position->getX + 1), position->getY); 
+            case (Direction::NORTH):
+                return std::make_shared<Position>((position->getX), (position->getY + 1)); 
+            default:
+                return std::make_shared<Position>((position->getX), (position->getY - 1)); 
+        }
+    }
+    std::shared_ptr<Position> get_backward_position()
+    {
+        switch (direction)
+        {
+            case (Direction::EAST):
+                return std::make_shared<Position>((position->getX - 1), position->getY); 
+            case (Direction::WEST):
+                return std::make_shared<Position>((position->getX + 1), position->getY); 
+            case (Direction::SOUTH):
+                return std::make_shared<Position>((position->getX), (position->getY + 1)); 
+            default:
+                return std::make_shared<Position>((position->getX), (position->getY - 1)); 
+        }
+    }
     void move_forward()
     {
         switch (direction)
@@ -181,8 +209,8 @@ class MoveForward : public Action {
 public:
     bool execute(Rover& rover) const override
     {
-        Position pos = rover.state->get_forward_position();
-        if (rover.is_danger())
+        std::shared_ptr<Position> pos = rover.state->get_forward_position();
+        if (rover.is_danger(pos))
         {
             return false;
         }
@@ -194,8 +222,8 @@ class MoveBackward : public Action {
 public:
     bool execute(Rover& rover) const override
     {
-        Position pos = rover.state->get_backward_position();
-        if (rover.is_danger())
+        std::shared_ptr<Position> pos = rover.state->get_backward_position();
+        if (rover.is_danger(pos))
         {
             return false;
         }
