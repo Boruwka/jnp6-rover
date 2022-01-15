@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <array>
 
-using coordinate_t = double; // tego chyba nie powinno być ale idk
+using coordinate_t = long long int;
 
 enum class Direction
 {
@@ -39,10 +39,6 @@ struct NotLanded : public std::exception {
     const char *what() const throw() { return "Rover has not landed yet"; }
 };
 
-struct UnknownCommand : public std::exception {
-    const char *what() const throw() { return "Unknown command"; }
-};
-
 class RoverState
 {
     public:
@@ -72,7 +68,7 @@ class Action
         actions = new std::vector<Action>(actions);
         type = NULL;
     }
-    void execute(Rover& rover)
+    bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
     {
         if (actions == NULL)
         {
@@ -81,7 +77,7 @@ class Action
                 Position pos = rover.state.get_forward_position();
                 if (rover.is_danger())
                 {
-                    throw DangerDetected;
+                    return false;
                 }
                 rover.state.move_forward();
             } 
@@ -90,7 +86,7 @@ class Action
                 Position pos = rover.state.get_backward_position();
                 if (rover.is_danger())
                 {
-                    throw DangerDetected;
+                    return false;
                 }
                 rover.state.move_backward();
             }
@@ -101,15 +97,19 @@ class Action
             if (type == ActionType::rotate_right)
             {
                 rover.state.rotate_right();
-            }   
+            }  
         } 
         else
         {
             for (auto a: actions)
             {
-                a.execute();
+                if (!a.execute())
+                {
+                    return false;
+                }
             }
         }
+        return true;
     }
     private:
     ActionType type; // tylko jeśli to pojedynczy typ
@@ -160,6 +160,10 @@ class Rover
         }
         for (auto c: command_string) 
         {
+            if(!commands.contains(c))
+            {
+                return; 
+            }
             commands[c].execute(*this);
         }
     }
