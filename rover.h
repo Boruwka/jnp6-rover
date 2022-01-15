@@ -94,7 +94,7 @@ class Action
     {
         actions = new std::vector<Action>(actions);
     }
-    bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
+    virtual bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
     {
         for (auto a: actions)
         {
@@ -103,15 +103,15 @@ class Action
                 return false;
             }
         }
+        return true;
     }
-    return true;
     }
     private:
     std::vector<Action> actions; // tylko jeśli to compose
 };
 
-class MoveForward : Action {
-    bool execute override()
+class MoveForward : public Action {
+    bool execute(Rover& rover) override
     {
         Position pos = rover.state.get_forward_position();
         if (rover.is_danger())
@@ -122,8 +122,8 @@ class MoveForward : Action {
     }
 };
 
-class MoveBackward : Action {
-    bool execute override()
+class MoveBackward : public Action {
+    bool execute(Rover& rover) override
     {
         Position pos = rover.state.get_backward_position();
         if (rover.is_danger())
@@ -134,18 +134,18 @@ class MoveBackward : Action {
     }
 };
 
-class RotateLeft : Action {
-    bool execute override()
+class RotateLeft : public Action {
+    bool execute(Rover& rover) override
     {
         rover.state.rotate_left();
         return true;
     } 
 };
 
-class RotateRight : Action {
-    bool execute override()
+class RotateRight : public Action {
+    bool execute(Rover& rover) override
     {
-        rover.state.rotate_right();
+        rover->state.rotate_right();
         return true;
     } 
 };
