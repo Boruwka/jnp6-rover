@@ -89,6 +89,34 @@ class RoverState
     [[nodiscard]] std::shared_ptr<Position> getPosition() const {
         return position;
     }
+    std::shared_ptr<Position> get_forward_position()
+    {
+        switch (direction)
+        {
+            case (Direction::WEST):
+                return std::make_shared<Position>((position->getX - 1), position->getY); 
+            case (Direction::EAST):
+                return std::make_shared<Position>((position->getX + 1), position->getY); 
+            case (Direction::NORTH):
+                return std::make_shared<Position>((position->getX), (position->getY + 1)); 
+            default:
+                return std::make_shared<Position>((position->getX), (position->getY - 1)); 
+        }
+    }
+    std::shared_ptr<Position> get_backward_position()
+    {
+        switch (direction)
+        {
+            case (Direction::EAST):
+                return std::make_shared<Position>((position->getX - 1), position->getY); 
+            case (Direction::WEST):
+                return std::make_shared<Position>((position->getX + 1), position->getY); 
+            case (Direction::SOUTH):
+                return std::make_shared<Position>((position->getX), (position->getY + 1)); 
+            default:
+                return std::make_shared<Position>((position->getX), (position->getY - 1)); 
+        }
+    }
     void move_forward()
     {
         switch (direction)
@@ -157,7 +185,6 @@ class RoverState
                 direction = Direction::WEST;
         }
     }
-
     private:
     bool landed;
     bool stopped;
@@ -178,12 +205,98 @@ public:
     }
 };
 
+class MoveForward : public Action {
+public:
+    bool execute(Rover& rover) const override
+    {
+        std::shared_ptr<Position> pos = rover.state->get_forward_position();
+        if (rover.is_danger(pos))
+        {
+            return false;
+        }
+        rover.state->move_forward();
+    }
+};
+
+class MoveBackward : public Action {
+public:
+    bool execute(Rover& rover) const override
+    {
+        std::shared_ptr<Position> pos = rover.state->get_backward_position();
+        if (rover.is_danger(pos))
+        {
+            return false;
+        }
+        rover.state->move_backward();
+    }
+};
+
+class RotateLeft : public Action {
+public:
+    bool execute(Rover& rover) const override
+    {
+        rover.state->rotate_left();
+        return true;
+    } 
+};
+
+class RotateRight : public Action {
+public:
+    bool execute(Rover& rover) const override
+    {
+        rover.state->rotate_right();
+        return true;
+    } 
+};
+
+class Compose : public Action {
+public:
+    Compose(std::initializer_list<std::shared_ptr<Action>> _components) : components(_components) {}
+
+    bool execute(Rover& rover) const override
+    {
+        for (const auto& a : components)
+        {
+            if (!a->execute(rover))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+private:
+    std::vector<std::shared_ptr<Action>> components;
+};
+
+std::shared_ptr<MoveForward> move_forward()
+{
+    return std::make_shared<MoveForward>();
+}
+
+std::shared_ptr<MoveBackward> move_backward()
+{
+    return std::make_shared<MoveBackward>();
+}
+
+std::shared_ptr<RotateLeft> rotate_left()
+{
+    return std::make_shared<RotateLeft>();
+}
+
+std::shared_ptr<RotateRight> rotate_right()
+{
+    return std::make_shared<RotateRight>();
+}
+
+std::shared_ptr<Action> compose(std::initializer_list<std::shared_ptr<Action>> actions)
+{
+    return std::make_shared<Compose>(actions);
+}
 
 class Sensor
 {
-public:
     virtual bool is_safe([[maybe_unused]] coordinate_t x,
-                         [[maybe_unused]] coordinate_t y) {}
+                 [[maybe_unused]] coordinate_t y) {}
 };
 
 class Rover
@@ -252,111 +365,21 @@ public:
     }
     bool isDanger(Position position)
     {
-        for (const auto &s: sensors)
+        for (auto s: sensors)
         {
-            if (!s->is_safe(position.getX(), position.getY()))
+            if (!s->is_safe(position->getX(), position->getY()))
             {
                 return true;
             }
         }
         return false;
     }
-    std::shared_ptr<RoverState> getState() {
-        return state;
-    }
 private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
     std::shared_ptr<RoverState> state;
+    
 };
-
-class MoveForward : public Action {
-public:
-    bool execute(Rover& rover) const override
-    {
-        auto roverState = rover.getState();
-        if (rover.isDanger(*rover->getForwardPosition()))
-        {
-            return false;
-        }
-        roverState->move_forward();
-    }
-};
-
-class MoveBackward : public Action {
-public:
-    bool execute(Rover& rover) const override
-    {
-        Position pos = rover.state.get_backward_position();
-        if (rover.isDanger(*pos))
-        {
-            return false;
-        }
-        rover.state.move_backward();
-    }
-};
-
-class RotateLeft : public Action {
-public:
-    bool execute(Rover& rover) const override
-    {
-        rover->getState.rotate_left();
-        return true;
-    }
-};
-
-class RotateRight : public Action {
-public:
-    bool execute(Rover& rover) const override
-    {
-        rover->state.rotate_right();
-        return true;
-    }
-};
-
-class Compose : public Action {
-public:
-    Compose(std::initializer_list<std::shared_ptr<Action>> _components) : components(_components) {}
-
-    bool execute(Rover& rover) const override
-    {
-        for (const auto& a : components)
-        {
-            if (!a->execute(rover))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-private:
-    std::vector<std::shared_ptr<Action>> components;
-};
-
-std::shared_ptr<MoveForward> move_forward()
-{
-    return std::make_shared<MoveForward>();
-}
-
-std::shared_ptr<MoveBackward> move_backward()
-{
-    return std::make_shared<MoveBackward>();
-}
-
-std::shared_ptr<RotateLeft> rotate_left()
-{
-    return std::make_shared<RotateLeft>();
-}
-
-std::shared_ptr<RotateRight> rotate_right()
-{
-    return std::make_shared<RotateRight>();
-}
-
-std::shared_ptr<Action> compose(std::initializer_list<std::shared_ptr<Action>> actions)
-{
-    return std::make_shared<Compose>(actions);
-}
 
 class RoverBuilder
 {
@@ -383,4 +406,5 @@ private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
 };
+
 
