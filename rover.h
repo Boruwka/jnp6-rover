@@ -181,12 +181,12 @@ class MoveForward : public Action {
 public:
     bool execute(Rover& rover) const override
     {
-        Position pos = rover.state.get_forward_position();
+        Position pos = rover.state->get_forward_position();
         if (rover.is_danger())
         {
             return false;
         }
-        rover.state.move_forward();
+        rover.state->move_forward();
     }
 };
 
@@ -194,12 +194,12 @@ class MoveBackward : public Action {
 public:
     bool execute(Rover& rover) const override
     {
-        Position pos = rover.state.get_backward_position();
+        Position pos = rover.state->get_backward_position();
         if (rover.is_danger())
         {
             return false;
         }
-        rover.state.move_backward();
+        rover.state->move_backward();
     }
 };
 
@@ -207,7 +207,7 @@ class RotateLeft : public Action {
 public:
     bool execute(Rover& rover) const override
     {
-        rover.state.rotate_left();
+        rover.state->rotate_left();
         return true;
     } 
 };
@@ -216,7 +216,7 @@ class RotateRight : public Action {
 public:
     bool execute(Rover& rover) const override
     {
-        rover->state.rotate_right();
+        rover.state->rotate_right();
         return true;
     } 
 };
@@ -350,38 +350,7 @@ private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
     std::shared_ptr<RoverState> state;
-    std::ostream& operator<<(std::ostream& os, const Rover& rover)
-    {
-        // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
-        if (!rover.state->getLanded())
-        {
-            os << "unknown";
-        }
-        else
-        {
-            os << "(" << rover.state->getPosition()->getX() << ", " << rover.state->getPosition()->getY() << ")";
-            switch (rover.state->getDirection()) {
-                case Direction::WEST:
-                    os << " WEST";
-                    break;
-                case Direction::NORTH:
-                    os << " NORTH";
-                    break;
-                case Direction::EAST:
-                    os << " EAST";
-                    break;
-                case Direction::SOUTH:
-                    os << " SOUTH";
-                    break;
-                default: ;
-            }
-            if (rover.state->isStopped())
-            {
-                os << " stopped";
-            }
-            os << "\n";
-        }
-        return os;
+    
 };
 
 class RoverBuilder
@@ -409,4 +378,5 @@ private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
 };
+
 
