@@ -4,7 +4,7 @@
 
 using coordinate_t = long long int;
 
-enum class Direction
+enum class DirectionType
 {
     WEST,
     EAST,
