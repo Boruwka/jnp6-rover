@@ -327,38 +327,6 @@ public:
             }
         }
     }
-    std::ostream& operator<<(std::ostream& os, const Rover& rover)
-    {
-        // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
-        if (!rover.state->getLanded())
-        {
-            os << "unknown";
-        }
-        else
-        {
-            os << "(" << rover.state->getPosition()->getX() << ", " << rover.state->getPosition()->getY() << ")";
-            switch (rover.state->getDirection()) {
-                case Direction::WEST:
-                    os << " WEST";
-                    break;
-                case Direction::NORTH:
-                    os << " NORTH";
-                    break;
-                case Direction::EAST:
-                    os << " EAST";
-                    break;
-                default:
-                    os << " SOUTH";
-                    break;
-            }
-            if (rover.state->isStopped())
-            {
-                os << " stopped";
-            }
-            os << "\n";
-        }
-        return os;
-    }
     void land(std::pair<coordinate_t, coordinate_t> pos, Direction dir)
     {
         state->land(pos, dir);
@@ -380,6 +348,40 @@ private:
     std::shared_ptr<RoverState> state;
     
 };
+
+
+inline std::ostream& operator<<(std::ostream& os, const Rover& rover)
+{
+    // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+    if (!rover.state->getLanded())
+    {
+        os << "unknown";
+    }
+    else
+    {
+        os << "(" << rover.state->getPosition()->getX() << ", " << rover.state->getPosition()->getY() << ")";
+        switch (rover.state->getDirection()) {
+            case Direction::WEST:
+                os << " WEST";
+                break;
+            case Direction::NORTH:
+                 os << " NORTH";
+                break;
+            case Direction::EAST:
+                os << " EAST";
+                break;
+            default:
+                os << " SOUTH";
+                break;
+        }
+        if (rover.state->isStopped())
+        {
+            os << " stopped";
+        }
+        os << "\n";
+    }
+    return os;
+}
 
 class RoverBuilder
 {
