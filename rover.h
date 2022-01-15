@@ -339,7 +339,7 @@ public:
     {
         for (auto s: sensors)
         {
-            if (!s.is_safe())
+            if (!s->is_safe(position->getX(), position->getY()))
             {
                 return true;
             }
