@@ -168,7 +168,10 @@ class Rover;
 
 class Action
 {
+public:
+
     virtual ~Action() {}
+
     virtual bool execute(Rover &rover) const {
         return false;
     }
