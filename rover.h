@@ -1,4 +1,3 @@
-#include <utility>
 #include <vector>
 #include <map>
 #include <array>
@@ -43,11 +42,20 @@ struct NotLanded : public std::exception {
 class RoverState
 {
     public:
-    RoverState(Position pos, Direction dir)
+    RoverState()
+    {
+        this->landed = false;
+        this->stopped = false;
+    }
+    void land(Position pos, Direction dir)
     {
         this->pos = pos;
         this->dir = dir;
+        this->landed = true;
+        this->stopped = false;
     }
+    bool landed;
+    bool stopped;
     private:
     Position pos;
     Direction dir;
@@ -62,11 +70,11 @@ class Action
     Action(ActionType a)
     {
         type = a;
-        actions = static_cast<const std::vector<Action>>();
+        actions = NULL;
     }
     Action(std::initializer_list<ActionType> actions)
     {
-        actions = std::vector<Action>(actions);
+        actions = new std::vector<Action>(actions);
         type = NULL;
     }
     bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
@@ -166,16 +174,16 @@ class Sensor
 
 class Rover
 {
-    public:
-    Rover(std::map<char, Action> &&commands, std::vector<std::unique_ptr<Sensor>> &&sensors)
+public:
+    Rover(std::map<char, Action> commands, std::set<std::unique_ptr<Sensor>> sensors)
     {
-        this->sensors = sensors;
-        this->commands = commands;
-        landed = false;
+        this.sensors = sensors;
+        this.commands = commands;
+        this.state = new RoverState();
     }
     void execute(std::string command_string)
     {
-        if (!landed)
+        if (!state.landed)
         {
             throw NotLanded;
         }
@@ -183,19 +191,53 @@ class Rover
         {
             if(!commands.contains(c))
             {
+                state.stopped = true;
                 return;
             }
-            commands[c].execute(*this);
+            if (!commands[c].execute(*this))
+            {
+                state.stopped = true;
+            }
         }
     }
-    void operator<< ()
+    std::ostream& operator<<(std::ostream& os, const Rover& rover)
     {
-        // idk co to dokładnie ma robić
+        // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+        if (!rover.state.landed)
+        {
+            os << "unknown";
+        }
+        else
+        {
+            os << "(" << rover.state.position.x << ", " << rover.state.position.y << ")";
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " WEST";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " NORTH";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " EAST";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " SOUTH";
+            }
+            if (rover.state.stopped)
+            {
+                os << " stopped";
+            }
+            os << "\n";
+        }
+        return os;
     }
     void land(std::pair<coordinate_t, coordinate_t> pos, Direction dir)
     {
         Position position = new Position(pos);
-        state = new State(position, dir);
+        state.land(position, dir);
     }
     bool is_danger(Position position)
     {
@@ -208,16 +250,48 @@ class Rover
         }
         return false;
     }
-    private:
-        RoverState state;
-        bool landed;
-        std::map<char, Action> commands;
-        std::vector<std::unique_ptr<Sensor>> sensors;
+private:
+    RoverState state;
+    std::ostream& operator<<(std::ostream& os, const Rover& rover)
+    {
+        // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+        if (!rover.state.landed)
+        {
+            os << "unknown";
+        }
+        else
+        {
+            os << "(" << rover.state.position.x << ", " << rover.state.position.y << ")";
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " WEST";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " NORTH";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " EAST";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " SOUTH";
+            }
+            if (rover.state.stopped)
+            {
+                os << " stopped";
+            }
+            os << "\n";
+        }
+        return os;
+    std::map<char, Action> commands;
+    std::vector<std::unique_ptr<Sensor>> sensors;
 };
 
 class RoverBuilder
 {
-    public:
+public:
     RoverBuilder() = default;
     RoverBuilder(const RoverBuilder&& other) = delete;
     RoverBuilder(RoverBuilder&& other) = delete;
@@ -226,7 +300,7 @@ class RoverBuilder
     {
         commands[c] = command;
         return *this;
-    } 
+    }
     RoverBuilder &add_sensor(std::unique_ptr<Sensor> sensor)
     {
         sensors.emplace_back(std::move(sensor));
@@ -236,9 +310,9 @@ class RoverBuilder
     {
         return Rover(std::move(commands), std::move(sensors));
     }
-    private:
-        std::map<char, std::shared_ptr<Action>> commands;
-        std::vector<std::unique_ptr<Sensor>> sensors;
+private:
+    std::map<char, std::shared_ptr<Action>> commands;
+    std::vector<std::unique_ptr<Sensor>> sensors;
 };
 
 
