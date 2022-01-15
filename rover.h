@@ -1,5 +1,6 @@
+#include <utility>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <array>
 
 using coordinate_t = long long int;
@@ -61,11 +62,11 @@ class Action
     Action(ActionType a)
     {
         type = a;
-        actions = NULL;
+        actions = static_cast<const std::vector<Action>>();
     }
     Action(std::initializer_list<ActionType> actions)
     {
-        actions = new std::vector<Action>(actions);
+        actions = std::vector<Action>(actions);
         type = NULL;
     }
     bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
@@ -114,27 +115,42 @@ class Action
     private:
     ActionType type; // tylko jeśli to pojedynczy typ
     std::vector<Action> actions; // tylko jeśli to compose
-    
 };
 
-Action move_forward()
+class MoveForward : Action {
+
+};
+
+class MoveBackward : Action {
+
+};
+
+class RotateLeft : Action {
+
+};
+
+class RotateRight : Action {
+
+};
+
+std::shared_ptr<MoveForward> move_forward()
 {
-    return new Action(ActionType::move_forward);
+    return std::make_shared<MoveForward>();
 }
 
-Action move_backward()
+std::shared_ptr<MoveBackward> move_backward()
 {
-    return new Action(ActionType::move_backward);
+    return std::make_shared<MoveBackward>();
 }
 
-Action rotate_left()
+std::shared_ptr<RotateLeft> rotate_left()
 {
-    return new Action(ActionType::rotate_left);
+    return std::make_shared<RotateLeft>();
 }
 
-Action rotate_right()
+std::shared_ptr<RotateRight> rotate_right()
 {
-    return new Action(ActionType::rotate_right);
+    return std::make_shared<RotateRight>();
 }
 
 Action compose(std::initializer_list<Action> actions)
@@ -142,14 +158,19 @@ Action compose(std::initializer_list<Action> actions)
     return new Action(actions);
 }
 
+class Sensor
+{
+    virtual bool is_safe([[maybe_unused]] coordinate_t x,
+                 [[maybe_unused]] coordinate_t y) {}
+};
 
 class Rover
 {
     public:
-    Rover(std::map<char, Action> commands, std::set<std::unique_ptr<Sensor>> sensors)
+    Rover(std::map<char, Action> &&commands, std::vector<std::unique_ptr<Sensor>> &&sensors)
     {
-        this.sensors = sensors;
-        this.commands = commands;
+        this->sensors = sensors;
+        this->commands = commands;
         landed = false;
     }
     void execute(std::string command_string)
@@ -158,11 +179,11 @@ class Rover
         {
             throw NotLanded;
         }
-        for (auto c: command_string) 
+        for (auto c: command_string)
         {
             if(!commands.contains(c))
             {
-                return; 
+                return;
             }
             commands[c].execute(*this);
         }
@@ -185,7 +206,7 @@ class Rover
                 return true;
             }
         }
-        return false; 
+        return false;
     }
     private:
         RoverState state;
@@ -194,32 +215,29 @@ class Rover
         std::vector<std::unique_ptr<Sensor>> sensors;
 };
 
-class Sensor
-{
-    bool is_safe([[maybe_unused]] coordinate_t x,
-                 [[maybe_unused]] coordinate_t y) {}
-};
-
 class RoverBuilder
 {
     public:
-    RoverBuilder() {}
-    RoverBuilder &program_command(char c, Command &&command)
+    RoverBuilder() = default;
+    RoverBuilder(const RoverBuilder&& other) = delete;
+    RoverBuilder(RoverBuilder&& other) = delete;
+
+    RoverBuilder &program_command(char c, std::shared_ptr<Action> command)
     {
         commands[c] = command;
         return *this;
     } 
     RoverBuilder &add_sensor(std::unique_ptr<Sensor> sensor)
     {
-        sensors.insert(sensor);
+        sensors.emplace_back(std::move(sensor));
         return *this;
     }
     Rover build()
     {
-        return new Rover(commands, sensors);
+        return Rover(std::move(commands), std::move(sensors));
     }
     private:
-        std::unordered_map<char, Action> commands;
+        std::map<char, std::shared_ptr<Action>> commands;
         std::vector<std::unique_ptr<Sensor>> sensors;
 };
 
