@@ -77,11 +77,79 @@ class RoverState
     [[nodiscard]] std::shared_ptr<Position> getPosition() const {
         return position;
     }
+    void move_forward()
+    {
+        switch(direction)
+        {
+            case(DirectionType::WEST):
+                position->x--;
+                break;
+            case(DirectionType::EAST):
+                position->x++;
+                break;
+            case(DirectionType::NORTH):
+                position->y++;
+                break;
+            default:
+                position->y--;
+        }
+    }
+    void move_backward()
+    {
+        switch(direction)
+        {
+            case(DirectionType::WEST):
+                position->x++;
+                break;
+            case(DirectionType::EAST):
+                position->x--;
+                break;
+            case(DirectionType::NORTH):
+                position->y--;
+                break;
+            default:
+                position->y++;
+        }
+    }
+    void rotate_left()
+    {
+        switch(direction)
+        {
+            case(DirectionType::WEST):
+                direction = DirectionType::SOUTH;
+                break;
+            case(DirectionType::EAST):
+                direction = DirectionType::NORTH;
+                break;
+            case(DirectionType::NORTH):
+                direction = DirectionType::WEST;
+                break;
+            default:
+                direction = DirectionType::EAST;
+        }
+    }
+    void rotate_right()
+    {
+        switch(direction)
+        {
+            case(DirectionType::WEST):
+                direction = DirectionType::NORTH;
+                break;
+            case(DirectionType::EAST):
+                direction = DirectionType::SOUTH;
+                break;
+            case(DirectionType::NORTH):
+                direction = DirectionType::EAST;
+                break;
+            default:
+                direction = DirectionType::WEST;
+        }
+    }
     private:
     bool landed;
     bool stopped;
     std::shared_ptr<Position> position;
-    Direction direction;
+    DirectionType direction;
 };
 
 class Rover;
