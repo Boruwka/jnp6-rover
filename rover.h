@@ -115,7 +115,61 @@ private:
     std::vector<std::unique_ptr<Sensor>> sensors;
     std::shared_ptr<RoverState> state;
 };
+void land(std::pair<coordinate_t, coordinate_t> pos, Direction dir)
+{
+    state->land(pos, dir);
+}
+bool isDanger(Position position)
+{
+    for (auto s: sensors)
+    {
+        if (!s->is_safe(position->getX(), position->getY()))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+private:
+std::map<char, std::shared_ptr<Action>> commands;
+std::vector<std::unique_ptr<Sensor>> sensors;
+std::shared_ptr<RoverState> state;
 
+};
+
+
+inline std::ostream& operator<<(std::ostream& os, const Rover& rover)
+{
+    // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+    if (!rover.state->getLanded())
+    {
+        os << "unknown";
+    }
+    else
+    {
+        os << "(" << rover.state->getPosition()->getX() << ", " << rover.state->getPosition()->getY() << ")";
+        switch (rover.state->getDirection()) {
+            case Direction::WEST:
+                os << " WEST";
+                break;
+            case Direction::NORTH:
+                os << " NORTH";
+                break;
+            case Direction::EAST:
+                os << " EAST";
+                break;
+            default:
+                os << " SOUTH";
+                break;
+        }
+        if (rover.state->isStopped())
+        {
+            os << " stopped";
+        }
+        os << "\n";
+    }
+    return os;
+}
 class Position
 {
     public:
@@ -287,6 +341,8 @@ class RoverState
     Direction direction;
 };
 
+class Rover;
+
 class Action
 {
 public:
@@ -383,6 +439,94 @@ std::shared_ptr<Action> compose(std::initializer_list<std::shared_ptr<Action>> a
 {
     return std::make_shared<Compose>(actions);
 }
+
+class Sensor
+{
+    virtual bool is_safe([[maybe_unused]] coordinate_t x,
+                 [[maybe_unused]] coordinate_t y) {}
+};
+
+class Rover
+{
+public:
+    Rover(std::map<char, std::shared_ptr<Action>> &&commands, std::vector<std::unique_ptr<Sensor>> &&sensors)
+    {
+        this->sensors = sensors;
+        this->commands = commands;
+        this->state = std::make_shared<RoverState>();
+    }
+    void execute(const std::string &command_string)
+    {
+        if (!state->getLanded())
+        {
+            throw NotLanded();
+        }
+        for (auto c: command_string)
+        {
+            if (!commands.contains(c))
+            {
+                state->setStopped(true);
+                return;
+            }
+            if (!commands[c]->execute(*this))
+            {
+                state->setStopped(true);
+            }
+        }
+    }
+    std::ostream& operator<<(std::ostream& os, const Rover& rover)
+    {
+        // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+        if (!rover.state->getLanded())
+        {
+            os << "unknown";
+        }
+        else
+        {
+            os << "(" << rover.state->getPosition()->getX() << ", " << rover.state->getPosition()->getY() << ")";
+            switch (rover.state->getDirection()) {
+                case Direction::WEST:
+                    os << " WEST";
+                    break;
+                case Direction::NORTH:
+                    os << " NORTH";
+                    break;
+                case Direction::EAST:
+                    os << " EAST";
+                    break;
+                default:
+                    os << " SOUTH";
+                    break;
+            }
+            if (rover.state->isStopped())
+            {
+                os << " stopped";
+            }
+            os << "\n";
+        }
+        return os;
+    }
+    void land(std::pair<coordinate_t, coordinate_t> pos, Direction dir)
+    {
+        state->land(pos, dir);
+    }
+    bool isDanger(Position position)
+    {
+        for (auto s: sensors)
+        {
+            if (!s->is_safe(position->getX(), position->getY()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+private:
+    std::map<char, std::shared_ptr<Action>> commands;
+    std::vector<std::unique_ptr<Sensor>> sensors;
+    std::shared_ptr<RoverState> state;
+    
+};
 
 class RoverBuilder
 {
