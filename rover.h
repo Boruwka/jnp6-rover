@@ -90,87 +90,64 @@ class Action
 {
     public:
     
-    Action(ActionType a)
+    Action(std::initializer_list<ActionType> actions)
     {
-        type = a;
-        actions = NULL;
-    }
-    Action(std::initializer_list<ActionType> _actions)
-    {
-        actions = std::vector(_actions);
-        type = NULL;
+        actions = new std::vector<Action>(actions);
     }
     bool execute(Rover& rover) // true jak sie powiodło, false jak się zatrzymał
     {
-        if (actions == NULL)
+        for (auto a: actions)
         {
-            if (type == ActionType::move_forward)
+            if (!a.execute())
             {
-                Position pos = rover.state.get_forward_position();
-                if (rover.is_danger())
-                {
-                    return false;
-                }
-                rover.state.move_forward();
-            } 
-            if (type == ActionType::move_backward)
-            {
-                Position pos = rover.state.get_backward_position();
-                if (rover.is_danger())
-                {
-                    return false;
-                }
-                rover.state.move_backward();
-            }
-            if (type == ActionType::rotate_left)
-            {
-                rover.state.rotate_left();
-            }
-            if (type == ActionType::rotate_right)
-            {
-                rover.state.rotate_right();
-            }  
-        } 
-        else
-        {
-            for (auto a: actions)
-            {
-                if (!a.execute())
-                {
-                    return false;
-                }
+                return false;
             }
         }
-        return true;
+    }
+    return true;
     }
     private:
-    ActionType type; // tylko jeśli to pojedynczy typ
-    std::vector<std::shared_ptr<Action>> actions; // tylko jeśli to compose
+    std::vector<Action> actions; // tylko jeśli to compose
 };
 
 class MoveForward : Action {
-
+    bool execute override()
+    {
+        Position pos = rover.state.get_forward_position();
+        if (rover.is_danger())
+        {
+            return false;
+        }
+        rover.state.move_forward();
+    }
 };
 
 class MoveBackward : Action {
-
+    bool execute override()
+    {
+        Position pos = rover.state.get_backward_position();
+        if (rover.is_danger())
+        {
+            return false;
+        }
+        rover.state.move_backward();
+    }
 };
 
 class RotateLeft : Action {
-
+    bool execute override()
+    {
+        rover.state.rotate_left();
+        return true;
+    } 
 };
 
 class RotateRight : Action {
-
-};
-
-class Compose : public Action {
-private:
-    std::vector<std::shared_ptr<Action>> components;
-
-public:
-    Compose(std::initializer_list<std::shared_ptr<Action>> _components)
-        : components(_components) {}
+    bool execute override()
+    {
+        rover.state.rotate_right();
+        return true;
+    } 
 };
 
 std::shared_ptr<MoveForward> move_forward()
@@ -193,9 +170,9 @@ std::shared_ptr<RotateRight> rotate_right()
     return std::make_shared<RotateRight>();
 }
 
-std::shared_ptr<Action> compose(std::initializer_list<std::shared_ptr<Action>> actions)
+Action compose(std::initializer_list<Action> actions)
 {
-    return std::make_shared<Compose>(actions);
+    return new Action(actions);
 }
 
 class Sensor
@@ -346,7 +323,4 @@ private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
 };
-
-
-
 
