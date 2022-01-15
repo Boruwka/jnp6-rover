@@ -42,11 +42,20 @@ struct NotLanded : public std::exception {
 class RoverState
 {
     public:
-    RoverState(Position pos, Direction dir)
+    RoverState()
+    {
+        this->landed = false;
+        this->stopped = false;
+    }
+    void land(Position pos, Direction dir)
     {
         this->pos = pos;
         this->dir = dir;
+        this->landed = true;
+        this->stopped = false;
     }
+    bool landed;
+    bool stopped;
     private:
     Position pos;
     Direction dir;
@@ -150,11 +159,11 @@ class Rover
     {
         this.sensors = sensors;
         this.commands = commands;
-        landed = false;
+        this.state = new RoverState();
     }
     void execute(std::string command_string)
     {
-        if (!landed)
+        if (!state.landed)
         {
             throw NotLanded;
         }
@@ -162,19 +171,53 @@ class Rover
         {
             if(!commands.contains(c))
             {
+                state.stopped = true;
                 return; 
             }
-            commands[c].execute(*this);
+            if (!commands[c].execute(*this))
+            {
+                state.stopped = true;
+            }
         }
     }
-    void operator<< ()
+    std::ostream& operator<<(std::ostream& os, const Rover& rover) 
     {
-        // idk co to dokładnie ma robić
+        // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+        if (!rover.state.landed)
+        {
+            os << "unknown";
+        }
+        else
+        {
+            os << "(" << rover.state.position.x << ", " << rover.state.position.y << ")";
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " WEST";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " NORTH";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " EAST";
+            }
+            if (rover.state.direction == DirectionType::WEST)
+            {
+                os << " SOUTH";
+            }
+            if (rover.state.stopped)
+            {
+                os << " stopped";
+            }
+            os << "\n";
+        }
+        return os;
     }
     void land(std::pair<coordinate_t, coordinate_t> pos, Direction dir)
     {
         Position position = new Position(pos);
-        state = new State(position, dir);
+        state.land(position, dir);
     }
     bool is_danger(Position position)
     {
@@ -189,7 +232,6 @@ class Rover
     }
     private:
         RoverState state;
-        bool landed;
         std::map<char, Action> commands;
         std::vector<std::unique_ptr<Sensor>> sensors;
 };
@@ -222,7 +264,4 @@ class RoverBuilder
         std::unordered_map<char, Action> commands;
         std::vector<std::unique_ptr<Sensor>> sensors;
 };
-
-
-
 
