@@ -1,7 +1,6 @@
 #include <utility>
 #include <vector>
 #include <map>
-#include <array>
 
 using coordinate_t = long long int;
 
@@ -10,8 +9,10 @@ class Action;
 class Position;
 class Position;
 
-struct NotLanded : public std::exception {
-    const char *what() const throw() { return "Rover has not landed yet"; }
+struct RoverNotLanded : public std::runtime_error {
+public:
+    RoverNotLanded(const std::string &what = "Rover has not landed yet")
+        : std::runtime_error(what) {}
 };
 
 enum class Direction
@@ -20,14 +21,6 @@ enum class Direction
     EAST,
     SOUTH,
     NORTH
-};
-
-enum class ActionType
-{
-    move_forward,
-    move_backward,
-    rotate_left,
-    rotate_right
 };
 
 class Sensor
@@ -70,15 +63,11 @@ private:
     coordinate_t y;
 };
 
-
 class RoverState
 {
 public:
-    RoverState()
-    {
-        this->landed = false;
-        this->stopped = false;
-    }
+    RoverState() : landed(false), stopped(false) {}
+
     void land(std::pair<coordinate_t, coordinate_t> _position, Direction _direction)
     {
         this->position = std::make_shared<Position>(_position);
@@ -86,19 +75,16 @@ public:
         this->landed = true;
         this->stopped = false;
     }
-    [[nodiscard]] bool getLanded() const {
+    [[nodiscard]] bool has_landed() const {
         return landed;
     }
-    void setLanded(bool l) {
-        this->landed = l;
-    }
-    void setStopped(bool s) {
+    void set_stopped(bool s) {
         this->stopped = s;
     }
-    [[nodiscard]] bool isStopped() const {
+    [[nodiscard]] bool is_stopped() const {
         return stopped;
     }
-    [[nodiscard]] Direction getDirection() const {
+    [[nodiscard]] Direction get_direction() const {
         return direction;
     }
     [[nodiscard]] std::shared_ptr<Position> getPosition() const {
@@ -212,7 +198,6 @@ class Rover;
 class Action
 {
 public:
-
     virtual ~Action() {}
 
     virtual bool execute([[maybe_unused]] Rover &rover) const {
@@ -224,28 +209,25 @@ public:
 class Rover
 {
 public:
-    Rover(std::map<char, std::shared_ptr<Action>> &&commands, std::vector<std::unique_ptr<Sensor>> &&sensors)
-    {
-        this->sensors = sensors;
-        this->commands = commands;
-        this->state = std::make_shared<RoverState>();
-    }
     void execute(const std::string &command_string)
     {
-        if (!state->getLanded())
+        if (!state->has_landed())
         {
-            throw NotLanded();
+            throw RoverNotLanded();
         }
-        for (auto c: command_string)
+        for (const auto c: command_string)
         {
             if (!commands.contains(c))
             {
-                state->setStopped(true);
+                state->set_stopped(true);
                 return;
             }
             if (!commands[c]->execute(*this))
             {
-                state->setStopped(true);
+                state->set_stopped(true);
+            } else
+            {
+                state->set_stopped(false);
             }
         }
     }
@@ -264,31 +246,30 @@ public:
         }
         return false;
     }
-    RoverState &getState() const {
+    [[nodiscard]] RoverState &getState() const {
         return *state;
     }
-    std::shared_ptr<RoverState> get_state()
-    {
-        return state;
-    }
     friend std::ostream& operator<<(std::ostream& os, const Rover& rover);
+    friend class RoverBuilder;
 private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
     std::shared_ptr<RoverState> state;
+
+    Rover(std::map<char, std::shared_ptr<Action>> _commands, std::vector<std::unique_ptr<Sensor>> _sensors)
+        : sensors(std::move(_sensors)), commands(std::move(_commands)), state(std::make_shared<RoverState>()) {}
 };
 
 std::ostream& operator<<(std::ostream& os, const Rover& rover)
 {
-    // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
-    if (!rover.getState().getLanded())
+    if (!rover.getState().has_landed())
     {
         os << "unknown";
     }
     else
     {
         os << "(" << rover.getState().getPosition()->getX() << ", " << rover.getState().getPosition()->getY() << ")";
-        switch (rover.getState().getDirection()) {
+        switch (rover.getState().get_direction()) {
             case Direction::WEST:
                 os << " WEST";
                 break;
@@ -302,16 +283,13 @@ std::ostream& operator<<(std::ostream& os, const Rover& rover)
                 os << " SOUTH";
                 break;
         }
-        if (rover.getState().isStopped())
+        if (rover.getState().is_stopped())
         {
             os << " stopped";
         }
-        os << "\n";
     }
     return os;
 }
-
-
 
 class MoveForward : public Action {
 public:
@@ -345,7 +323,7 @@ public:
     {
         rover.getState().rotate_left();
         return true;
-    } 
+    }
 };
 
 class RotateRight : public Action {
