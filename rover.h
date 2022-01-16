@@ -79,10 +79,10 @@ public:
         this->landed = false;
         this->stopped = false;
     }
-    void land(std::pair<coordinate_t, coordinate_t> position, Direction direction)
+    void land(std::pair<coordinate_t, coordinate_t> _position, Direction _direction)
     {
-        this->position = std::make_shared<Position>(position);
-        this->direction = direction;
+        this->position = std::make_shared<Position>(_position);
+        this->direction = _direction;
         this->landed = true;
         this->stopped = false;
     }
@@ -264,20 +264,21 @@ public:
         }
         return false;
     }
-    RoverState &getState() {
+    RoverState &getState() const {
         return *state;
     }
     std::shared_ptr<RoverState> get_state()
     {
         return state;
     }
+    friend std::ostream& operator<<(std::ostream& os, const Rover& rover);
 private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
     std::shared_ptr<RoverState> state;
 };
 
-inline std::ostream& operator<<(std::ostream& os, Rover& rover)
+std::ostream& operator<<(std::ostream& os, const Rover& rover)
 {
     // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
     if (!rover.getState().getLanded())
