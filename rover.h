@@ -34,7 +34,7 @@ class Sensor
 {
 public:
     virtual bool is_safe([[maybe_unused]] coordinate_t x,
-                         [[maybe_unused]] coordinate_t y) {}
+                         [[maybe_unused]] coordinate_t y) {return true;}
 };
 
 class Action;
@@ -207,6 +207,19 @@ private:
     Direction direction;
 };
 
+class Rover;
+
+class Action
+{
+public:
+
+    virtual ~Action() {}
+
+    virtual bool execute([[maybe_unused]] Rover &rover) const {
+        return false;
+    }
+};
+
 
 class Rover
 {
@@ -254,22 +267,50 @@ public:
     RoverState &getState() {
         return *state;
     }
+    std::shared_ptr<RoverState> get_state()
+    {
+        return state;
+    }
 private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
     std::shared_ptr<RoverState> state;
 };
 
-class Action
+inline std::ostream& operator<<(std::ostream& os, const Rover& rover)
 {
-public:
-
-    virtual ~Action() {}
-
-    virtual bool execute(Rover &rover) const {
-        return false;
+    // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
+    if (!rover.getState().getLanded())
+    {
+        os << "unknown";
     }
-};
+    else
+    {
+        os << "(" << rover.getState().getPosition()->getX() << ", " << rover.getState().getPosition()->getY() << ")";
+        switch (rover.getState().getDirection()) {
+            case Direction::WEST:
+                os << " WEST";
+                break;
+            case Direction::NORTH:
+                os << " NORTH";
+                break;
+            case Direction::EAST:
+                os << " EAST";
+                break;
+            default:
+                os << " SOUTH";
+                break;
+        }
+        if (rover.getState().isStopped())
+        {
+            os << " stopped";
+        }
+        os << "\n";
+    }
+    return os;
+}
+
+
 
 class MoveForward : public Action {
 public:
@@ -280,6 +321,7 @@ public:
             return false;
         }
         rover.getState().move_forward();
+        return true;
     }
 };
 
@@ -292,6 +334,7 @@ public:
             return false;
         }
         rover.getState().move_backward();
+        return true;
     }
 };
 
@@ -382,5 +425,3 @@ private:
     std::map<char, std::shared_ptr<Action>> commands;
     std::vector<std::unique_ptr<Sensor>> sensors;
 };
-
-
