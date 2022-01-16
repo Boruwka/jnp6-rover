@@ -277,7 +277,7 @@ private:
     std::shared_ptr<RoverState> state;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Rover& rover)
+inline std::ostream& operator<<(std::ostream& os, Rover& rover)
 {
     // os << "(" << num.l << ", " << num.m << ", " << num.u << ")";
     if (!rover.getState().getLanded())
